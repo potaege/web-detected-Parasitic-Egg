@@ -1,5 +1,11 @@
-**/*.jpg
-**/*.jpeg
-**/*.png
-**/*.gif
-**/*.bmp
+!static/detections/*.jpg
+!static/detections/*.jpeg
+!static/detections/*.png
+!static/detections/*.gif
+!static/detections/*.bmp
+
+!static/uploads/*.jpg
+!static/uploads/*.jpeg
+!static/uploads/*.png
+!static/uploads/*.gif
+!static/uploads/*.bmp
