@@ -40,7 +40,7 @@ def predict():
     img = cv2.imread(image_path)
 
     # รัน YOLO inference
-    results = model(img, conf=0.342)
+    results = model(img, conf=0.342,imgsz=640)
 
     # วาดกรอบสี่เหลี่ยมบนภาพ
     for r in results:
