@@ -40,11 +40,11 @@
 </head>
 
 <body>
-    <h1>YOLO Object Detection</h1>
+    <h1>Detection Parasitic Egg</h1>
 
     <form id="uploadForm" enctype="multipart/form-data">
         <input type="file" name="image" accept="image/*" required>
-        <button type="submit">Upload Image</button>
+        <button type="submit">predict</button>
     </form>
 
     <div id="result" style="display: none;">
@@ -72,9 +72,9 @@
                 .then(data => {
                     if (data.detections && data.detections.length > 0) {
                         let detectionDetails = data.detections.map(d => {
-                            return `${d.class} (Confidence: ${d.confidence.toFixed(2)}) - Bounding Box: [${d.bbox.join(', ')}]`;
-                        }).join(", ");
-                        messageElem.textContent = `Detected: ${detectionDetails}`;
+                            return `Prediction results: ${d.class.replace(/_/g, " ") } <br>Accuracy: ${d.confidence.toFixed(2)}`;
+                        }).join("<br>"); // Join with <br> for line breaks
+                        messageElem.innerHTML = `Detected: <br>${detectionDetails}`; // Use innerHTML to support HTML tags like <br>
                     } else {
                         messageElem.textContent = "No objects detected.";
                     }

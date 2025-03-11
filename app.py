@@ -1,15 +1,15 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from ultralytics import YOLO
 import cv2
-import numpy as np
 import os
+import uuid
 
 app = Flask(__name__)
 
-# Load YOLO model
+# โหลด YOLO model
 model = YOLO("best.pt")
 
-# Create a directory to store detected images
+# สร้างโฟลเดอร์สำหรับเก็บภาพที่ตรวจพบ
 UPLOAD_FOLDER = "static/uploads"
 DETECTED_FOLDER = "static/detections"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -17,60 +17,64 @@ os.makedirs(DETECTED_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
-    return render_template("index.html")  # Load UI from HTML file
+    return render_template("index.html")  # โหลด UI จากไฟล์ HTML
 
 @app.route('/predict', methods=['POST'])
 def predict():
     if 'image' not in request.files:
-        return jsonify({"error": "No image uploaded!"})
+        return jsonify({"error": "ไม่มีการอัปโหลดภาพ!"})
 
     file = request.files['image']
-    filename = file.filename
-    image_path = os.path.join(UPLOAD_FOLDER, filename)
-    detected_image_path = os.path.join(DETECTED_FOLDER, filename)
+    original_filename = file.filename
 
-    # Save the uploaded image
+    # สร้างชื่อไฟล์ที่ไม่ซ้ำกันโดยการเพิ่ม UUID เข้ากับชื่อไฟล์เดิม
+    unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
+    
+    image_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+    detected_image_path = os.path.join(DETECTED_FOLDER, unique_filename)
+
+    # บันทึกไฟล์ภาพที่อัปโหลดด้วยชื่อไฟล์ที่ไม่ซ้ำกัน
     file.save(image_path)
 
-    # Load image using OpenCV
+    # โหลดภาพด้วย OpenCV
     img = cv2.imread(image_path)
 
-    # Run YOLO inference
-    results = model(img, conf=0.25)
+    # รัน YOLO inference
+    results = model(img, conf=0.342)
 
-    # Draw bounding boxes on the image
+    # วาดกรอบสี่เหลี่ยมบนภาพ
     for r in results:
         for box in r.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             class_name = model.names[int(box.cls)]
             confidence = float(box.conf)
 
-            # Draw rectangle and label
+            # วาดกรอบสี่เหลี่ยมและป้าย
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(img, f"{class_name} {confidence:.2f}", (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-    # Save the detected image
+    # บันทึกภาพที่ตรวจพบด้วยชื่อไฟล์ที่ไม่ซ้ำกัน
     cv2.imwrite(detected_image_path, img)
 
-    # Extract detected objects
+    # ดึงข้อมูลวัตถุที่ตรวจพบ
     detections = []
     for r in results:
         for box in r.boxes:
             detections.append({
                 "class": model.names[int(box.cls)],
                 "confidence": float(box.conf),
-                "bbox": box.xyxy.tolist()[0]  # Convert to list
+                "bbox": box.xyxy.tolist()[0]  # แปลงเป็นลิสต์
             })
 
-    # Determine response message
+    # กำหนดข้อความตอบกลับ
     if detections:
-        detected_classes = {d["class"] for d in detections}  # Get unique detected class names
+        detected_classes = {d["class"] for d in detections}  # ดึงชื่อคลาสที่ตรวจพบที่ไม่ซ้ำ
         message = f"Detected: {', '.join(detected_classes)}"
     else:
-        message = "Detected and found nothing."
+        message = "ไม่พบวัตถุที่ตรวจพบ"
 
-    return jsonify({"detections": detections, "message": message, "image_url": f"/detections/{filename}"})
+    return jsonify({"detections": detections, "message": message, "image_url": f"/detections/{unique_filename}"})
 
 @app.route('/detections/<filename>')
 def get_detected_image(filename):
