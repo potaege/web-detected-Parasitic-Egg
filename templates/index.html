@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO Object Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+
+        #detectedImage {
+            display: none;
+            /* Don't show image by default */
+            margin-top: 20px;
+            max-width: 80%;
+            /* Limit the width to 80% */
+            height: auto;
+            /* Maintain aspect ratio */
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>YOLO Object Detection</h1>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*" required>
+        <button type="submit">Upload Image</button>
+    </form>
+
+    <div id="result" style="display: none;">
+        <p class="message" id="message"></p> <!-- Message will be populated here -->
+        <h2>Detection Results</h2>
+        <img id="detectedImage" src="" alt="Detected Image">
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById("uploadForm");
+        const resultDiv = document.getElementById("result");
+        const detectedImage = document.getElementById("detectedImage");
+        const messageElem = document.getElementById("message");
+
+        uploadForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const formData = new FormData(uploadForm);
+
+            fetch("/predict", {
+                method: "POST",
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.detections && data.detections.length > 0) {
+                        let detectionDetails = data.detections.map(d => {
+                            return `${d.class} (Confidence: ${d.confidence.toFixed(2)}) - Bounding Box: [${d.bbox.join(', ')}]`;
+                        }).join(", ");
+                        messageElem.textContent = `Detected: ${detectionDetails}`;
+                    } else {
+                        messageElem.textContent = "No objects detected.";
+                    }
+
+                    detectedImage.src = data.image_url;  // Set the image URL to display
+                    detectedImage.style.display = "block";  // Show the detected image
+                    resultDiv.style.display = "block";  // Show the result div
+                })
+                .catch(error => {
+                    messageElem.textContent = "Error uploading the image.";
+                    console.error("Error:", error);
+                });
+        });
+    </script>
+</body>
+
+</html>
